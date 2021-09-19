@@ -49,6 +49,7 @@ Je propose :
 - adapter la methode isConforme à toutes les valeur de ComplianceProcess__c
 - ajouter la methode setMissingInformation pour associer à chaque à toutes les valeur de ComplianceProcess__c une valeur pour le champ MissingInformations__c
 - faire en sorte que la méthode execute reste stable
+
 De ce fait, à chaque ajout d'un process de confirmité:
 - ajouter une constante pour chaque ComplianceProcess__c.
 - ajouter une constante _MISSING_INFO pour chaque ComplianceProcess__c.
