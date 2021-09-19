@@ -39,3 +39,21 @@ Exercices à réaliser :
 la valeur "Conformité Pub". Pour ces souscriptions, il est nécessaire de valider que la date de fin effective (EffectiveEndDate__c) est supérieure à la date du jour. 
 De plus, un champ "MissingInformations__c" a été créé sur les souscriptions. Celui-ci doit être renseigné en cas d'échec du processus de conformité avec les différentes informations vérifiées par le processus de conformité concerné ("Conformité Pub" ou "Conformité Immo neuf"). 
 A noter : de nouveaux processus de conformité seront ajoutés ultérieurement.
+
+Explication de la solution:
+Je comprend que seul le critère de conformité change d'un process à un autre, mais que la procédure reste la même (ie. mettre à jour le champ Souscription_Conforme__c sur la souscription et son parent)
+
+Je propose :
+- regrouper les ComplianceProcess__c dans une liste pour les récupérer dans une seule query
+- pour chaque ComplianceProcess__c corespond une constante ontenant sa valeur et une autre constante pour le message d'information
+- adapter la methode isConforme à toutes les valeur de ComplianceProcess__c
+- ajouter la methode setMissingInformation pour associer à chaque à toutes les valeur de ComplianceProcess__c une valeur pour le champ MissingInformations__c
+- faire en sorte que la méthode execute reste stable
+De ce fait, à chaque ajout d'un process de confirmité:
+- ajouter une constante pour chaque ComplianceProcess__c.
+- ajouter une constante _MISSING_INFO pour chaque ComplianceProcess__c.
+- ajouter le ComplianceProcess__c à la liste COMPLIENCE_PROCESSES
+- mettre à jour la liste des champs nécessaires au niveau de la query
+- mettre à jour la méthode isConforme pour vérfier le critère de conformité
+- mettre à jour la méthode setMissingInformation pour l'ajout du message d'information
+- mettre à jour les classes de test

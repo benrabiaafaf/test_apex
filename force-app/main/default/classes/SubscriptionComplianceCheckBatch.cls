@@ -1,6 +1,12 @@
 global class SubscriptionComplianceCheck_Batch implements Database.Batchable<sObject> {
     private static final String ELEMENTS_MANQUANTS = 'Éléments manquants';
     private static final String IMMO_NEUF = 'Conformité Immo neuf';
+    private static final String PUB = 'Conformité Pub';
+    private static final String IMMO_NEUF_MISSING_INFO ='CERTAINS CHAMPS SONT MANQUANTS';
+    private static final String IMMO_NEUF_MISSING_INFO ='CERTAINS CHAMPS SONT MANQUANTS';
+    private static final String PUB_MISSING_INFO ='LA DATE DE FIN EFFECTIVE EST PASSEE';
+    private static final List<String> COMPLIENCE_PROCESSES = new List<String>{IMMO_NEUF, PUB};
+
     
     global List<SBQQ__Subscription__c> start(Database.BatchableContext cnx) { 
         // Keep only used fields
@@ -36,12 +42,14 @@ global class SubscriptionComplianceCheck_Batch implements Database.Batchable<sOb
                     LeadPhone__c,
                     ContractEmail__c, 
                     //CompanySegment__c,        // Unused field then in execute method
-                    CompanySiret__c 
+                    CompanySiret__c,
+                    EffectiveEndDate__c,
+                    MissingInformations__c
                 FROM 
                     SBQQ__Subscription__c 
                 WHERE 
                     Status__c = :ELEMENTS_MANQUANTS
-                AND ComplianceProcess__c = :IMMO_NEUF   // better filter here
+                AND ComplianceProcess__c IN :COMPLIENCE_PROCESSES 
                 AND Souscription_Conforme__c = false
             ];
     }
@@ -50,9 +58,10 @@ global class SubscriptionComplianceCheck_Batch implements Database.Batchable<sOb
         try {
             Map<Id,SBQQ__Subscription__c> subsToUpdate = new Map<Id,SBQQ__Subscription__c>();   // use map to check if parent has not been already updated 
             for(SBQQ__Subscription__c vSub : scope) {
-                SBQQ__Subscription__c subImmo = setConformiteImmoNeuf(vSub);
-                if (subImmo != null) {
-                    subsToUpdate.put(subImmo.Id,subImmo);   // add subscription to be updated
+                SBQQ__Subscription__c checkedSub = setConformite(vSub);
+                if (checkedSub != null) {
+                    subsToUpdate.put(checkedSub.Id,checkedSub);   // add subscription to be updated
+                    // update parent subscription
                     if (    vSub.SBQQ__RequiredById__c != null 
                         &&  vSub.SBQQ__RequiredById__r.Souscription_Conforme__c != true
                         &&  !subsToUpdate.containsKey(vSub.SBQQ__RequiredById__c)
@@ -65,6 +74,8 @@ global class SubscriptionComplianceCheck_Batch implements Database.Batchable<sOb
                             )
                         );
                     }
+                }else{
+                    subsToUpdate.put(vSub.Id,setMissingInformation(vSub));
                 }
             }
             UPDATE subsToUpdate.values();
@@ -77,26 +88,44 @@ global class SubscriptionComplianceCheck_Batch implements Database.Batchable<sOb
     }
     
     private Boolean isConforme(SBQQ__Subscription__c sub){
-        return(
-                sub.PromoterDescription__c != null 
-            &&  sub.FlowType__c != null 
-            &&  sub.ProductWorkflow__c != null
-            &&  sub.ContractEmail__c != null 
-            &&  sub.CompanySiret__c != null 
-            &&  sub.CompanyName__c != null
-            &&  sub.CompanyAddressStreet__c != null 
-            &&  sub.CompanyAddressZipcode__c != null 
-            &&  sub.CompanyAddressCity__c != null
-            &&  sub.CompanyPhone__c != null 
-            &&  sub.ContactGender__c != null 
-            &&  sub.ContactFirstName__c != null 
-            &&  sub.ContactLastName__c != null 
-            &&  sub.LeadPhone__c != null
-        );
+        if(sub.ComplianceProcess__c == IMMO_NEUF){
+            return(
+                    sub.PromoterDescription__c != null 
+                &&  sub.FlowType__c != null 
+                &&  sub.ProductWorkflow__c != null
+                &&  sub.ContractEmail__c != null 
+                &&  sub.CompanySiret__c != null 
+                &&  sub.CompanyName__c != null
+                &&  sub.CompanyAddressStreet__c != null 
+                &&  sub.CompanyAddressZipcode__c != null 
+                &&  sub.CompanyAddressCity__c != null
+                &&  sub.CompanyPhone__c != null 
+                &&  sub.ContactGender__c != null 
+                &&  sub.ContactFirstName__c != null 
+                &&  sub.ContactLastName__c != null 
+                &&  sub.LeadPhone__c != null
+            );
+        }else if(sub.ComplianceProcess__c == PUB){
+            return (sub.EffectiveEndDate__c > Date.today());
+        }
+        return false;
     }
-    private SBQQ__Subscription__c setConformiteImmoNeuf(SBQQ__Subscription__c sub) {
+
+
+    private SBQQ__Subscription__c setConformite(SBQQ__Subscription__c sub) {
         if(isConforme(sub)) {
             sub.Souscription_Conforme__c = true;
+            return sub;
+        }
+        return null;
+    }
+
+    private SBQQ__Subscription__c setMissingInformation(SBQQ__Subscription__c sub) {
+        if(sub.ComplianceProcess__c == IMMO_NEUF){
+            sub.MissingInformations__c = IMMO_NEUF_MISSING_INFO;
+            return sub;
+        }else if(sub.ComplianceProcess__c == PUB){
+            sub.MissingInformations__c = PUB_MISSING_INFO;
             return sub;
         }
         return null;
