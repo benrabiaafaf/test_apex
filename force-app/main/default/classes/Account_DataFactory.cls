@@ -1,7 +1,6 @@
-@isTest
 public with sharing class Account_DataFactory {
 
-    public static Account createAccount(String AccountName, String phone, String siret) {
+    public static Account createAccount(String AccountName, String phone, String siret, Boolean doInsert) {
         
     	Account res = new Account(
             Name = AccountName, 
@@ -10,10 +9,10 @@ public with sharing class Account_DataFactory {
         	BillingStreet = '00 SomeWhere',
         	BillingCity = 'SinCity',
         	BillingCountry = 'France',
-        	BillingPostalcode = '75000');        
-
-        insert res;
-        
+        	BillingPostalcode = '75000');
+        if(doInsert){
+            insert res;
+        }                
         return res;
     }
 }
